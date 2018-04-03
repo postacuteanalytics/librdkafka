@@ -47,6 +47,8 @@
  */
 
 /**@cond NO_DOC*/
+#include <map>
+#include <utility>
 #include <string>
 #include <list>
 #include <vector>
@@ -1346,7 +1348,7 @@ public:
   int64_t timestamp;               /**< Milliseconds since epoch (UTC). */
 };
 
-
+typedef std::map<const std::string, std::pair<const void*, size_t> > Headers;
 
 /**
  * @brief Message object
@@ -1408,6 +1410,8 @@ class RD_EXPORT Message {
 
   /** @returns The \p msg_opaque as provided to RdKafka::Producer::produce() */
   virtual void               *msg_opaque () const = 0;
+
+  virtual const Headers headers() const = 0;
 
   virtual ~Message () = 0;
 
@@ -2130,6 +2134,14 @@ class RD_EXPORT Producer : public virtual Handle {
                              const void *key, size_t key_len,
                              int64_t timestamp,
                              void *msg_opaque) = 0;
+
+  virtual ErrorCode produce (const std::string topic_name,
+                            int32_t partition, int msgflags,
+                            void *payload, size_t len,
+                            const void *key, size_t key_len,
+                            int64_t timestamp,
+                            void *msg_opaque,
+                            const Headers headers) = 0;
 
 
   /**

@@ -29,6 +29,8 @@
 #ifndef _RDKAFKACPP_INT_H_
 #define _RDKAFKACPP_INT_H_
 
+#include <map>
+#include <utility>
 #include <string>
 #include <iostream>
 #include <cstring>
@@ -197,6 +199,26 @@ class MessageImpl : public Message {
   }
 
   void               *msg_opaque () const { return rkmessage_->_private; };
+
+  const Headers headers() const {
+    Headers ret;
+
+    rd_kafka_headers_t* headers;
+    if (rd_kafka_message_headers(rkmessage_, &headers) != RD_KAFKA_RESP_ERR_NO_ERROR) {
+      return ret;
+    }
+
+    size_t iter = 0, size;
+    const char* name;
+    const void* value;
+    while(rd_kafka_header_get_all(headers, iter, &name, &value, &size) == RD_KAFKA_RESP_ERR_NO_ERROR) {
+      ret[std::string(name)] = std::make_pair(value, size);
+
+      iter++;
+    }
+
+    return ret;
+  }
 
   int64_t             latency () const {
           return rd_kafka_message_latency(rkmessage_);
@@ -893,6 +915,14 @@ class ProducerImpl : virtual public Producer, virtual public HandleImpl {
                      const void *key, size_t key_len,
                      int64_t timestamp,
                      void *msg_opaque);
+
+  ErrorCode produce (const std::string topic_name,
+                     int32_t partition, int msgflags,
+                     void *payload, size_t len,
+                     const void *key, size_t key_len,
+                     int64_t timestamp,
+                     void *msg_opaque,
+                     const Headers headers);
 
   ErrorCode flush (int timeout_ms) {
 	  return static_cast<RdKafka::ErrorCode>(rd_kafka_flush(rk_,
